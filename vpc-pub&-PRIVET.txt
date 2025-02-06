@@ -1,0 +1,124 @@
+Go to Instance download Terraform
+#sudo yum install -y yum-utils shadow-utils
+#sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
+#sudo yum -y install terraform
+create to file 1) main.tf 2)provider.tf
+#vim main.tf 
+----------------VPC public & privet-------------------------
+
+# VPC
+resource "aws_vpc" "like" {
+  cidr_block = "10.0.0.0/16"
+
+  tags = {
+    Name = "like-vpc"
+  }
+}
+
+# Public Subnet
+resource "aws_subnet" "public" {
+  vpc_id                  = aws_vpc.like.id
+  cidr_block              = "10.0.1.0/24"
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name = "sub-public"
+  }
+}
+
+# Private Subnet
+resource "aws_subnet" "private" {
+  vpc_id                  = aws_vpc.like.id
+  cidr_block              = "10.0.2.0/24"
+  map_public_ip_on_launch = false
+
+  tags = {
+    Name = "sub-private"
+  }
+}
+
+# Internet Gateway (for Public Subnet)
+resource "aws_internet_gateway" "gw" {
+  vpc_id = aws_vpc.like.id
+
+  tags = {
+    Name = "main-igw"
+  }
+}
+
+# Public Route Table
+resource "aws_route_table" "pub_like" {
+  vpc_id = aws_vpc.like.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.gw.id
+  }
+
+  tags = {
+    Name = "rt-public"
+  }
+}
+
+# Private Route Table
+resource "aws_route_table" "pri_route" {
+  vpc_id = aws_vpc.like.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.nat_like.id
+  }
+
+  tags = {
+    Name = "rt-private"
+  }
+}
+
+# Elastic IP for NAT Gateway
+resource "aws_eip" "lb" {
+  domain = "vpc"
+}
+
+# NAT Gateway for Private Subnet Internet Access
+resource "aws_nat_gateway" "nat_like" {
+  allocation_id = aws_eip.lb.id
+  subnet_id     = aws_subnet.public.id
+
+  tags = {
+    Name = "gw-NAT"
+  }
+
+  depends_on = [aws_internet_gateway.gw]
+}
+
+# Public Subnet Route Table Association
+resource "aws_route_table_association" "sub_public" {
+  subnet_id      = aws_subnet.public.id
+  route_table_id = aws_route_table.pub_like.id
+}
+
+# Private Subnet Route Table Association
+resource "aws_route_table_association" "sub_private" {
+  subnet_id      = aws_subnet.private.id
+  route_table_id = aws_route_table.pri_route.id
+}
+
+
+
+**********AND write in Provider.tf****
+terraform {
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = "5.85.0"
+    }
+  }
+}
+
+provider "aws" {
+  # Configuration options
+  region = "ap-southeast-2"
+  access_key = "your access-key"
+  secret_key = "secrete-key"
+}
+ 
