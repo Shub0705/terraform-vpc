@@ -1,0 +1,14 @@
+****************terraform create s3 5times******************
+
+main.tf file
+resource "aws_s3_bucket" "a"{
+ count = var.bucket_count
+ bucket = "shubbucket-${count.index + 1}"
+
+
+var.tf file
+variable "bucket_count" {
+    description = "number of  s3 bucket  to create"
+    type = number
+    default = 5
+}
