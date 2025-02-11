@@ -1,0 +1,61 @@
+resource "aws_iam_user" "shu" {
+  name = "shwetatai"
+  path = "/system/"
+
+  tags = {
+    tag-key = "task"
+  }
+}
+resource "aws_iam_role" "T-role" {
+  name = "taskrole"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Sid    = ""
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      },
+    ]
+  })
+  tags = {
+    Name = "pri-task"
+  }
+}
+resource "aws_iam_policy" "T-pol" {
+  name = "T-poli-pri"
+  path = "/system/"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "ec2:Describe*",
+        ]
+        Effect   = "Allow"
+        Resource = "*"
+      },
+    ]
+  })
+
+}
+resource "aws_iam_policy_attachment" "k" {
+  name       = "utk"
+  roles      = [aws_iam_role.T-role.name]
+  policy_arn = aws_iam_policy.T-pol.arn
+  users = [aws_iam_user.shu.name]
+  groups = [aws_iam_group.egg.name]
+
+}
+resource "aws_iam_group" "egg" {
+  name = "fish"
+  path = "/users/"
+}
+resource "aws_iam_group_membership" "tai" {
+  name = "bhai"
+  users = [aws_iam_user.shu.name]
+  group = aws_iam_group.egg.name
+}
